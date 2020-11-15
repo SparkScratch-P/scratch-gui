@@ -281,6 +281,12 @@ const TWStateManager = function (WrappedComponent) {
                 this.props.vm.setTurboMode(true);
             }
 
+            if (urlParams.has('stuck')) {
+                this.props.vm.setCompilerOptions({
+                    warpTimer: true
+                });
+            }
+
             if (urlParams.has('project_url')) {
                 const projectUrl = urlParams.get('project_url');
                 this.props.onProjectFetchStarted();
@@ -319,18 +325,18 @@ const TWStateManager = function (WrappedComponent) {
             }
 
             if (
-                this.props.projectId !== prevProps.projectId ||
+                this.props.reduxProjectId !== prevProps.reduxProjectId ||
                 this.props.isPlayerOnly !== prevProps.isPlayerOnly ||
                 this.props.isFullScreen !== prevProps.isFullScreen
             ) {
                 const oldPath = `${location.pathname}${location.search}${location.hash}`;
                 const routerState = {
-                    projectId: this.props.projectId,
+                    projectId: this.props.reduxProjectId,
                     isPlayerOnly: this.props.isPlayerOnly,
                     isFullScreen: this.props.isFullScreen
                 };
                 const newPath = this.router.generateURL(routerState);
-                if (newPath !== oldPath) {
+                if (newPath && newPath !== oldPath) {
                     history.pushState(null, null, newPath);
                 }
             }
@@ -356,7 +362,7 @@ const TWStateManager = function (WrappedComponent) {
                 onSetIsPlayerOnly,
                 onSetProjectId,
                 onSetUsername,
-                projectId,
+                reduxProjectId,
                 routingStyle,
                 username,
                 vm,
@@ -379,7 +385,7 @@ const TWStateManager = function (WrappedComponent) {
         onSetIsPlayerOnly: PropTypes.func,
         onSetProjectId: PropTypes.func,
         onSetUsername: PropTypes.func,
-        projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        reduxProjectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
         routingStyle: PropTypes.oneOf(Object.keys(routers)),
         username: PropTypes.string,
         vm: PropTypes.instanceOf(VM)
@@ -390,7 +396,7 @@ const TWStateManager = function (WrappedComponent) {
     const mapStateToProps = state => ({
         isFullScreen: state.scratchGui.mode.isFullScreen,
         isPlayerOnly: state.scratchGui.mode.isPlayerOnly,
-        projectId: state.scratchGui.projectState.projectId,
+        reduxProjectId: state.scratchGui.projectState.projectId,
         username: state.scratchGui.tw.username,
         vm: state.scratchGui.vm
     });

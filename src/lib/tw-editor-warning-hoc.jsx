@@ -6,12 +6,15 @@ import {showStandardAlert} from '../reducers/alerts';
 const TWEditorWarningHOC = function (WrappedComponent) {
     class EditorWarningComponent extends React.Component {
         componentDidMount () {
-            // TODO: need to clean this up, probably don't use a HOC just to display a single message
+            if (this.props.alerts.find(i => i.alertId === 'twWarning')) {
+                return;
+            }
             this.props.onShowWarning();
         }
         render () {
             const {
                 /* eslint-disable no-unused-vars */
+                alerts,
                 isPlayerOnly,
                 onShowWarning,
                 /* eslint-enable no-unused-vars */
@@ -25,10 +28,14 @@ const TWEditorWarningHOC = function (WrappedComponent) {
         }
     }
     EditorWarningComponent.propTypes = {
+        alerts: PropTypes.arrayOf(PropTypes.shape({
+            alertId: PropTypes.string
+        })),
         isPlayerOnly: PropTypes.bool,
         onShowWarning: PropTypes.func
     };
     const mapStateToProps = state => ({
+        alerts: state.scratchGui.alerts.alertsList,
         isPlayerOnly: state.scratchGui.mode.isPlayerOnly
     });
     const mapDispatchToProps = dispatch => ({

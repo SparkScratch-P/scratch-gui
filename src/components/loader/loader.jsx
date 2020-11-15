@@ -1,5 +1,5 @@
 import React from 'react';
-import {FormattedMessage} from 'react-intl';
+import {defineMessages, FormattedMessage, intlShape, injectIntl} from 'react-intl';
 import classNames from 'classnames';
 import styles from './loader.css';
 import PropTypes from 'prop-types';
@@ -15,6 +15,7 @@ import * as progressMonitor from './tw-progress-monitor';
 // we make some rather large changes here:
 //  - remove random message, replaced with message dependent on what is actually being loaded
 //  - add a progress bar
+//  - bring in intl so that we can translate everything
 // The way of doing this is extremely unusual and weird compared to how things are typically done for performance.
 // This is because react updates are too performance crippling to handle the progress bar rapidly updating.
 
@@ -35,6 +36,29 @@ const mainMessages = {
     )
 };
 
+const messages = defineMessages({
+    generic: {
+        defaultMessage: 'Loading project …',
+        description: 'Initial generic loading message',
+        id: 'tw.loader.generic'
+    },
+    projectData: {
+        defaultMessage: 'Loading project data …',
+        description: 'Appears when loading project data',
+        id: 'tw.loader.data'
+    },
+    assetsKnown: {
+        defaultMessage: 'Loading assets ({complete}/{total}) …',
+        description: 'Appears when loading project assets and amount of assets is known',
+        id: 'tw.loader.assets.known'
+    },
+    assetsUnknown: {
+        defaultMessage: 'Loading assets …',
+        description: 'Appears when loading project assets but amount of assets is unknown',
+        id: 'tw.loader.assets.unknown'
+    }
+});
+
 class LoaderComponent extends React.Component {
     constructor (props) {
         super(props);
@@ -50,7 +74,7 @@ class LoaderComponent extends React.Component {
     }
     componentDidMount () {
         progressMonitor.setProgressHandler(this.handleProgressChange);
-        this.update();
+        this.updateMessage();
     }
     componentDidUpdate () {
         this.update();
@@ -75,13 +99,17 @@ class LoaderComponent extends React.Component {
         }
     }
     updateMessage () {
-        // TODO: support translations
-        if (this._state === 1) {
-            this.message.textContent = 'Loading project data …';
+        if (this._state === 0) {
+            this.message.textContent = this.props.intl.formatMessage(messages.generic);
+        } else if (this._state === 1) {
+            this.message.textContent = this.props.intl.formatMessage(messages.projectData);
         } else if (this.total > 0) {
-            this.message.textContent = `Loading assets (${this.complete}/${this.total}) …`;
+            this.message.textContent = this.props.intl.formatMessage(messages.assetsKnown, {
+                complete: this.complete,
+                total: this.total
+            });
         } else {
-            this.message.textContent = `Loading assets …`;
+            this.message.textContent = this.props.intl.formatMessage(messages.assetsUnknown);
         }
     }
     barInnerRef (element) {
@@ -119,13 +147,7 @@ class LoaderComponent extends React.Component {
                         <div
                             className={styles.messageContainerInner}
                             ref={this.messageRef}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Loading project …"
-                                description="Default loading message"
-                                id="tw.loadingMessage"
-                            />
-                        </div>
+                        />
                     </div>
                     <div className={styles.twProgressOuter}>
                         <div
@@ -141,6 +163,7 @@ class LoaderComponent extends React.Component {
 
 LoaderComponent.propTypes = {
     isFullScreen: PropTypes.bool,
+    intl: intlShape.isRequired,
     messageId: PropTypes.string
 };
 LoaderComponent.defaultProps = {
@@ -148,4 +171,4 @@ LoaderComponent.defaultProps = {
     messageId: 'gui.loader.headline'
 };
 
-export default LoaderComponent;
+export default injectIntl(LoaderComponent);
