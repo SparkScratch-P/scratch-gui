@@ -31,7 +31,7 @@ import SixtyFPSToggler from '../../containers/tw-sixty-fps-toggler.jsx';
 import HighQualityPen from '../../containers/tw-high-quality-pen.jsx';
 import ChangeUsername from '../../containers/tw-change-username.jsx';
 import CloudVariablesToggler from '../../containers/tw-cloud-toggler.jsx';
-import CompilerOptions from '../../containers/tw-compiler-options.jsx';
+import VMOptions from '../../containers/tw-vm-options.jsx';
 import TWSaveStatus from './tw-save-status.jsx';
 
 import {openTipsLibrary} from '../../reducers/modals';
@@ -61,6 +61,9 @@ import {
     openHelpMenu,
     closeHelpMenu,
     helpMenuOpen,
+    openErrorsMenu,
+    closeErrorsMenu,
+    errorsMenuOpen,
     openLanguageMenu,
     closeLanguageMenu,
     languageMenuOpen,
@@ -80,6 +83,7 @@ import remixIcon from './icon--remix.svg';
 import dropdownCaret from './dropdown-caret.svg';
 import languageIcon from '../language-selector/language-icon.svg';
 import aboutIcon from './icon--about.svg';
+import errorIcon from './tw-error.svg';
 
 import scratchLogo from './scratch-logo.svg';
 
@@ -97,6 +101,14 @@ const ariaMessages = defineMessages({
         id: 'gui.menuBar.tutorialsLibrary',
         defaultMessage: 'Tutorials',
         description: 'accessibility text for the tutorials button'
+    }
+});
+
+const twMessages = defineMessages({
+    compileError: {
+        id: 'tw.menuBar.compileError',
+        defaultMessage: '{sprite}: {error}',
+        description: 'Error message in error menu'
     }
 });
 
@@ -399,6 +411,59 @@ class MenuBar extends React.Component {
                             </div>
                             <LanguageSelector label={this.props.intl.formatMessage(ariaMessages.language)} />
                         </div>)}
+                        {/* tw: display compile errors */}
+                        {this.props.compileErrors.length > 0 && <div className={styles.fileGroup}>
+                            <div
+                                className={classNames(styles.menuBarItem, styles.hoverable, {
+                                    [styles.active]: this.props.errorsMenuOpen
+                                })}
+                                onMouseUp={this.props.onClickErrors}
+                            >
+                                <div className={classNames(styles.errorsMenu)}>
+                                    <img
+                                        className={styles.languageIcon}
+                                        src={errorIcon}
+                                    />
+                                    <img
+                                        className={styles.languageCaret}
+                                        src={dropdownCaret}
+                                    />
+                                </div>
+                                <MenuBarMenu
+                                    className={classNames(styles.menuBarMenu)}
+                                    open={this.props.errorsMenuOpen}
+                                    place={this.props.isRtl ? 'left' : 'right'}
+                                    onRequestClose={this.props.onRequestCloseErrors}
+                                >
+                                    <MenuSection>
+                                        <MenuItemLink href="https://scratch.mit.edu/users/GarboMuffin/#comments">
+                                            <FormattedMessage
+                                                defaultMessage="Some scripts could not be compiled."
+                                                description="Link in error menu"
+                                                id="tw.menuBar.reportError1"
+                                            />
+                                        </MenuItemLink>
+                                        <MenuItemLink href="https://scratch.mit.edu/users/GarboMuffin/#comments">
+                                            <FormattedMessage
+                                                defaultMessage="This is a bug. Please report it."
+                                                description="Link in error menu"
+                                                id="tw.menuBar.reportError2"
+                                            />
+                                        </MenuItemLink>
+                                    </MenuSection>
+                                    <MenuSection>
+                                        {this.props.compileErrors.map(({id, sprite, error}) => (
+                                            <MenuItem key={id}>
+                                                {this.props.intl.formatMessage(twMessages.compileError, {
+                                                    sprite,
+                                                    error
+                                                })}
+                                            </MenuItem>
+                                        ))}
+                                    </MenuSection>
+                                </MenuBarMenu>
+                            </div>
+                        </div>}
                         {(this.props.canManageFiles) && (
                             <div
                                 className={classNames(styles.menuBarItem, styles.hoverable, {
@@ -627,25 +692,32 @@ class MenuBar extends React.Component {
                                             )}
                                         </MenuItem>
                                     )}</HighQualityPen>
-                                    <CompilerOptions>{({toggleEnabled, toggleWarpTimer, compilerOptions}) => (
+                                    <VMOptions>{({
+                                        compilerEnabled,
+                                        toggleCompilerEnabled,
+                                        warpTimer,
+                                        toggleWarpTimer,
+                                        infiniteClones,
+                                        toggleInfiniteClones
+                                    }) => (
                                         <React.Fragment>
-                                            <MenuItem onClick={toggleEnabled}>
-                                                {compilerOptions.enabled ? (
+                                            <MenuItem onClick={toggleInfiniteClones}>
+                                                {infiniteClones ? (
                                                     <FormattedMessage
-                                                        defaultMessage="Disable Compiler"
-                                                        description="Menu bar item for disabling the compiler"
-                                                        id="tw.menuBar.compilerOff"
+                                                        defaultMessage="Turn off Infinite Clones"
+                                                        description="Menu bar item for turning off Infinite Clones"
+                                                        id="tw.menuBar.infiniteClonesOff"
                                                     />
                                                 ) : (
                                                     <FormattedMessage
-                                                        defaultMessage="Enable Compiler"
-                                                        description="Menu bar item for enabling the compiler"
-                                                        id="tw.menuBar.compilerOn"
+                                                        defaultMessage="Turn on Infinite Clones"
+                                                        description="Menu bar item for turning on Infinite Clones"
+                                                        id="tw.menuBar.infiniteClonesOn"
                                                     />
                                                 )}
                                             </MenuItem>
                                             <MenuItem onClick={toggleWarpTimer}>
-                                                {compilerOptions.warpTimer ? (
+                                                {warpTimer ? (
                                                     <FormattedMessage
                                                         defaultMessage="Turn off Warp Timer (Stuck Checking)"
                                                         description="Menu bar item for turning off Warp Timer"
@@ -659,8 +731,23 @@ class MenuBar extends React.Component {
                                                     />
                                                 )}
                                             </MenuItem>
+                                            <MenuItem onClick={toggleCompilerEnabled}>
+                                                {compilerEnabled ? (
+                                                    <FormattedMessage
+                                                        defaultMessage="Disable Compiler"
+                                                        description="Menu bar item for disabling the compiler"
+                                                        id="tw.menuBar.compilerOff"
+                                                    />
+                                                ) : (
+                                                    <FormattedMessage
+                                                        defaultMessage="Enable Compiler"
+                                                        description="Menu bar item for enabling the compiler"
+                                                        id="tw.menuBar.compilerOn"
+                                                    />
+                                                )}
+                                            </MenuItem>
                                         </React.Fragment>
-                                    )}</CompilerOptions>
+                                    )}</VMOptions>
                                 </MenuSection>
                             </MenuBarMenu>
                         </div>
@@ -820,9 +907,9 @@ class MenuBar extends React.Component {
                             {/* todo: icon */}
                             <Button className={styles.feedbackButton}>
                                 <FormattedMessage
-                                    defaultMessage="Give Feedback"
+                                    defaultMessage="TurboWarp Feedback"
                                     description="Text for the giving feedback button"
-                                    id="tw.giveFeedback"
+                                    id="tw.feedback"
                                 />
                             </Button>
                         </a>
@@ -858,6 +945,11 @@ MenuBar.propTypes = {
     canSave: PropTypes.bool,
     canShare: PropTypes.bool,
     className: PropTypes.string,
+    compileErrors: PropTypes.arrayOf(PropTypes.shape({
+        sprite: PropTypes.string,
+        error: PropTypes.string,
+        id: PropTypes.number
+    })),
     confirmReadyToReplaceProject: PropTypes.func,
     editMenuOpen: PropTypes.bool,
     enableCommunity: PropTypes.bool,
@@ -887,6 +979,8 @@ MenuBar.propTypes = {
     onRequestCloseSettings: PropTypes.func,
     onClickHelp: PropTypes.func,
     onRequestCloseHelp: PropTypes.func,
+    onClickErrors: PropTypes.func,
+    onRequestCloseErrors: PropTypes.func,
     onLogOut: PropTypes.func,
     onOpenRegistration: PropTypes.func,
     onOpenTipLibrary: PropTypes.func,
@@ -905,6 +999,7 @@ MenuBar.propTypes = {
     sessionExists: PropTypes.bool,
     settingsMenuOpen: PropTypes.bool,
     helpMenuOpen: PropTypes.bool,
+    errorsMenuOpen: PropTypes.bool,
     shouldSaveBeforeTransition: PropTypes.func,
     showComingSoon: PropTypes.bool,
     userOwnsProject: PropTypes.bool,
@@ -924,6 +1019,7 @@ const mapStateToProps = (state, ownProps) => {
         accountMenuOpen: accountMenuOpen(state),
         authorThumbnailUrl: state.scratchGui.tw.author.thumbnail,
         authorUsername: state.scratchGui.tw.author.username,
+        compileErrors: state.scratchGui.tw.compileErrors,
         fileMenuOpen: fileMenuOpen(state),
         editMenuOpen: editMenuOpen(state),
         isPlayerOnly: state.scratchGui.mode.isPlayerOnly,
@@ -938,6 +1034,7 @@ const mapStateToProps = (state, ownProps) => {
         sessionExists: state.session && typeof state.session.session !== 'undefined',
         settingsMenuOpen: settingsMenuOpen(state),
         helpMenuOpen: helpMenuOpen(state),
+        errorsMenuOpen: errorsMenuOpen(state),
         username: user ? user.username : null,
         userOwnsProject: ownProps.authorUsername && user &&
             (ownProps.authorUsername === user.username),
@@ -963,6 +1060,8 @@ const mapDispatchToProps = dispatch => ({
     onRequestCloseSettings: () => dispatch(closeSettingMenu()),
     onClickHelp: () => dispatch(openHelpMenu()),
     onRequestCloseHelp: () => dispatch(closeHelpMenu()),
+    onClickErrors: () => dispatch(openErrorsMenu()),
+    onRequestCloseErrors: () => dispatch(closeErrorsMenu()),
     onClickNew: needSave => dispatch(requestNewProject(needSave)),
     onClickRemix: () => dispatch(remixProject()),
     onClickSave: () => dispatch(manualUpdateProject()),
